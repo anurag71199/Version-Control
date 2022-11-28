@@ -10,10 +10,11 @@
 
 #include "sha1.hpp"
 
-#define KRED "\x1B[31m"
-#define KGRN "\x1B[32m"
-#define KYEL "\x1B[33m"
+#define REDTEXT "\x1B[31m"
+#define GREENTEXT "\x1B[32m"
+#define YELLOWTEXT "\x1B[33m"
 #define RESET "\033[0m"
+
 #define LOG_FILE "./.git/log.txt"
 #define TrackerLog "./trackerlog.txt"
 
@@ -32,41 +33,41 @@ vector<dirent *> dirfiles;
 
 /*** Function Prototypes ****/
 void trackerlogs(string);
-void updateLog(string);
-void showError(string);
-bool isDirExist(const string &);
-bool checkFileSize(string);
-int countDirectories(string);
-vector<string> splitString(string, char);
-vector<string> readFile(string);
-unordered_set<string> readFileSet(string);
-unordered_map<string, string> readFileMap(string);
-bool makeDirectory(string);
-void deleteData(string);
-void delete_file(string);
-void copyFile(string, string);
-void copyDirectory(string, string);
-void listFiles(const char *, vector<string> &);
-void writeData(vector<string>, string);
-void addFilesToVersionDir(vector<string> &, string);
-void updateStatus(vector<string>);
+void log_update(string);
+void error_display(string);
+bool dir_checker(const string &);
+bool getFileSize(string);
+int cnt_dir(string);
+vector<string> splitter(string, char);
+vector<string> file_reader(string);
+unordered_set<string> fileset_reader(string);
+unordered_map<string, string> filemap_reader(string);
+bool mymkdir(string);
+void del_data(string);
+void del_file(string);
+void cp_file(string, string);
+void cp_dir(string, string);
+void myls(const char *, vector<string> &);
+void write_to_file(vector<string>, string);
+void versionFolder_add(vector<string> &, string);
+void modify_status(vector<string>);
 void init();
 void add(string);
 void commitUtil(string, vector<string> &, unordered_map<string, string> &);
-string getText();
-void addToAddFiles(vector<string> &, unordered_map<string, string>);
-void commit();
+string mycustom_msg(string);
+void modify_addFiles(vector<string> &, unordered_map<string, string>);
+void commit(string);
 void printUntracked(vector<string>);
 void printTbc(vector<string>);
 void printModified(vector<string>);
 void status();
-bool compareVersions(dirent *, dirent *);
-void getDirContents(string, vector<string> &);
-int remove_dir(const char *);
-void deleteFolder(vector<string>);
-void copyFile_roll(string, string, char *);
-void copyDirectory_roll(char *, char *, char *);
-void copy_version(char *, char *);
+bool mycustomcomparator(dirent *, dirent *);
+void explore_dir(string, vector<string> &);
+int myrmdir(const char *);
+void rmfolder(vector<string>);
+void cpfile2(string, string, char *);
+void cpdir2(char *, char *, char *);
+void cp_ver(char *, char *);
 void rollback();
 void log();
 bool init_first();
@@ -80,26 +81,21 @@ void trackerlogs(string text)
     log_file.close();
 }
 
-void updateLog(string text)
+void log_update(string text)
 {
     ofstream log_file(LOG_FILE, OUT | APPEND);
     log_file << text;
     log_file.close();
 }
-////////////////////////////////////////////////////////////////
 
-void showError(string str)
+void error_display(string str)
 {
-    // Print error
-
     perror(str.c_str());
     exit(0);
 }
 
-bool isDirExist(const string &path)
+bool dir_checker(const string &path)
 {
-    // Return true if directory exist else false
-
     STAT info;
     if (stat(path.c_str(), &info) != 0)
     {
@@ -113,10 +109,8 @@ bool isDirExist(const string &path)
     return false;
 }
 
-bool checkFileSize(string path)
+bool getFileSize(string path)
 {
-    // Check if the given path is a file and has some data in it
-
     STAT file_stat;
 
     if (stat(path.c_str(), &file_stat) != -1)
@@ -125,17 +119,13 @@ bool checkFileSize(string path)
         {
             return false;
         }
-
-        // If no data in add.txt then returns 0
-        // cout << file_stat.st_size << endl;
         return file_stat.st_size;
     }
     return false;
 }
 
-int countDirectories(string path)
+int cnt_dir(string path)
 {
-    // Returns no.of directories in a given directory
 
     DIR *dir;
     DIRENT *dp;
@@ -143,7 +133,6 @@ int countDirectories(string path)
 
     dir = opendir(path.c_str());
 
-    // Directory exists
     if (dir != NULL)
     {
         while ((dp = readdir(dir)) != NULL)
@@ -163,9 +152,8 @@ int countDirectories(string path)
     return 0;
 }
 
-vector<string> splitString(string text, char delimiter)
+vector<string> splitter(string text, char delimiter)
 {
-    // split string based on given delimiter and return vector of strings
     vector<string> result;
     string temp = "";
     for (size_t i = 0; i < text.size(); i++)
@@ -185,9 +173,8 @@ vector<string> splitString(string text, char delimiter)
     return result;
 }
 
-vector<string> readFile(string file_name)
+vector<string> file_reader(string file_name)
 {
-    // Read line by line from the file and return vector of string(lines form file)
 
     string next_line;
     vector<string> result;
@@ -199,15 +186,13 @@ vector<string> readFile(string file_name)
         result.push_back(next_line);
     }
 
-    // Closing the file
     file_stream.close();
     return result;
 }
 
-unordered_set<string> readFileSet(string file_name)
+unordered_set<string> fileset_reader(string file_name)
 {
-    // Read lines in a set and return set of string(lines)
-    vector<string> res1 = readFile(file_name);
+    vector<string> res1 = file_reader(file_name);
 
     unordered_set<string> res2;
     for (auto s : res1)
@@ -218,9 +203,8 @@ unordered_set<string> readFileSet(string file_name)
     return res2;
 }
 
-unordered_map<string, string> readFileMap(string file_name)
+unordered_map<string, string> filemap_reader(string file_name)
 {
-    // read status.txt file
     unordered_map<string, string> result;
     string get_line;
     int fl;
@@ -232,7 +216,7 @@ unordered_map<string, string> readFileMap(string file_name)
     {
         if (getline(ifs, get_line))
         {
-            vector<string> words = splitString(get_line, ' ');
+            vector<string> words = splitter(get_line, ' ');
             fl = 1;
             result[words[0]] = words[1];
         }
@@ -242,9 +226,8 @@ unordered_map<string, string> readFileMap(string file_name)
     return result;
 }
 
-bool makeDirectory(string fpath)
+bool mymkdir(string fpath)
 {
-    // Creates nested directories
 
     const char *cc_path = fpath.c_str();
 
@@ -265,7 +248,7 @@ bool makeDirectory(string fpath)
             return false;
         }
 
-        if (!makeDirectory(fpath.substr(0, psn)))
+        if (!mymkdir(fpath.substr(0, psn)))
         {
             return false;
         }
@@ -274,44 +257,38 @@ bool makeDirectory(string fpath)
     }
     else if (EEXIST == errno)
     {
-        return isDirExist(fpath);
+        return dir_checker(fpath);
     }
 
     return false;
 }
 
-// Delete file data
-void deleteData(string file_name)
+void del_data(string file_name)
 {
-    // delete all contents of file
     ofstream log_file(file_name, ios_base::out);
     log_file.close();
 }
 
-void delete_file(string Destination)
+void del_file(string Destination)
 {
     if (unlink(Destination.c_str()) != 0)
     {
-        showError("Error deleting file\n");
+        error_display("Error deleting file\n");
         trackerlogs("Error deleting file inside function\n");
     }
 }
 
-// Copies file from source to destination
-void copyFile(string src_path, string dest_path)
+void cp_file(string src_path, string dest_path)
 {
-    // Initialising variables
     char buff[BUFSIZ];
     struct stat st;
     int size;
     FILE *dest_file;
     FILE *src_file;
 
-    // Open source file and creating destination file
     dest_file = fopen(&dest_path[0], "w");
     src_file = fopen(&src_path[0], "r");
 
-    // Copy data of src_file to dest_file
     size = fread(buff, 1, BUFSIZ, src_file);
     while (1)
     {
@@ -321,17 +298,14 @@ void copyFile(string src_path, string dest_path)
             break;
     }
 
-    // Copying the permissions
     stat(src_path.c_str(), &st);
     chmod(dest_path.c_str(), st.st_mode);
 
-    // Closing the opened files
     fclose(src_file);
     fclose(dest_file);
 }
 
-// Copies Driectory from path to destination
-void copyDirectory(string s1, string s2)
+void cp_dir(string s1, string s2)
 {
     DIR *d;
     struct dirent *file;
@@ -342,15 +316,14 @@ void copyDirectory(string s1, string s2)
         stat((s1 + "/" + file->d_name).c_str(), &buf);
         if (S_ISREG(buf.st_mode))
         {
-            // cout<<s2+"/"+string(file->d_name)<<endl;
-            copyFile(s1 + "/" + string(file->d_name), s2 + "/" + string(file->d_name));
+            cp_file(s1 + "/" + string(file->d_name), s2 + "/" + string(file->d_name));
         }
         else
         {
             if (string(file->d_name) != "." && string(file->d_name) != "..")
             {
                 mkdir((s2 + "/" + string(file->d_name)).c_str(), S_IRUSR | S_IWUSR | S_IXUSR);
-                copyDirectory(s1 + "/" + string(file->d_name), s2 + "/" + string(file->d_name));
+                cp_dir(s1 + "/" + string(file->d_name), s2 + "/" + string(file->d_name));
             }
         }
     }
@@ -359,8 +332,7 @@ void copyDirectory(string s1, string s2)
     return;
 }
 
-// Takes input as directory path and output vector reference
-void listFiles(const char *dirname, vector<string> &files)
+void myls(const char *dirname, vector<string> &files)
 {
     DIR *dir = opendir(dirname);
     if (dir == NULL)
@@ -378,21 +350,18 @@ void listFiles(const char *dirname, vector<string> &files)
             {
                 string path = string(dirname) + "/" + dir_content;
 
-                // Removing "./" from path
                 path = path.substr(2);
-                if (!isDirExist(path))
+                if (!dir_checker(path))
                     files.push_back(path);
             }
-            // Adding file_names
             else if (entity->d_type == DT_REG)
             {
                 files.push_back(entity->d_name);
             }
-            // Recursively adding file names from directory
             else if (entity->d_type == DT_DIR)
             {
                 string path = string(dirname) + "/" + string(entity->d_name);
-                listFiles(path.c_str(), files);
+                myls(path.c_str(), files);
             }
         }
         entity = readdir(dir);
@@ -400,9 +369,8 @@ void listFiles(const char *dirname, vector<string> &files)
     closedir(dir);
 }
 
-void writeData(vector<string> files, string file_name)
+void write_to_file(vector<string> files, string file_name)
 {
-    // Writing data to file
 
     ofstream dest_file(file_name);
 
@@ -411,9 +379,8 @@ void writeData(vector<string> files, string file_name)
     copy(files.begin(), files.end(), output_iterator);
 }
 
-void addFilesToVersionDir(vector<string> &files, string dest)
+void versionFolder_add(vector<string> &files, string dest)
 {
-    // Copy files into the new version directory
 
     string src;
     int i = 0;
@@ -427,18 +394,18 @@ void addFilesToVersionDir(vector<string> &files, string dest)
 
         if (pos == string::npos)
         {
-            makeDirectory(temp);
+            mymkdir(temp);
         }
         else
         {
-            makeDirectory(temp + src.substr(0, pos));
+            mymkdir(temp + src.substr(0, pos));
         }
 
-        copyFile("./" + src, temp + src);
+        cp_file("./" + src, temp + src);
     }
 }
 
-void updateStatus(vector<string> files)
+void modify_status(vector<string> files)
 {
     string hash;
     string dest;
@@ -457,10 +424,9 @@ void updateStatus(vector<string> files)
 
     dest = "./.git/status.txt";
 
-    writeData(file_hash, dest);
+    write_to_file(file_hash, dest);
 }
 
-//================================================***********=============================================
 
 void init()
 {
@@ -489,7 +455,7 @@ void add(string file)
     vector<string> FilesToAdd;
     string dest = "./.git/add.txt";
     int i, j;
-    vector<string> addFiles = readFile(dest);
+    vector<string> addFiles = file_reader(dest);
     unordered_set<string> addFilesSet;
 
     for (auto it : addFiles)
@@ -499,10 +465,10 @@ void add(string file)
 
     if (file != ".")
     {
-        if (isDirExist(file))
+        if (dir_checker(file))
         {
             string folder = "./" + file;
-            listFiles(&folder[0], FilesToAdd);
+            myls(&folder[0], FilesToAdd);
         }
         else
         {
@@ -519,7 +485,7 @@ void add(string file)
     }
     else
     {
-        listFiles(".", FilesToAdd);
+        myls(".", FilesToAdd);
         for (auto it : FilesToAdd)
         {
             if (addFilesSet.find(it) != addFilesSet.end())
@@ -534,7 +500,6 @@ void add(string file)
 
     for (auto it : FilesToAdd)
     {
-        //////////////////////////////////////////////////////
         ifstream ftemp(it);
         if (!ftemp)
         {
@@ -544,7 +509,7 @@ void add(string file)
             return;
         }
     }
-    writeData(FilesToAdd, dest);
+    write_to_file(FilesToAdd, dest);
     cout << "Staging Successful\n";
 
     return;
@@ -554,11 +519,10 @@ void commitUtil(string cwd, vector<string> &pversion_files, unordered_map<string
 {
     if (countD != 0)
     {
-        // Find the files in that directory
         string folder = "./.git/version/v_" + to_string(countD);
         chdir(&folder[0]);
         vector<string> files;
-        listFiles(".", pversion_files);
+        myls(".", pversion_files);
         chdir(&cwd[0]);
         for (auto it : pversion_files)
         {
@@ -571,21 +535,21 @@ void commitUtil(string cwd, vector<string> &pversion_files, unordered_map<string
         }
         chdir(&folder[0]);
         string dest = "../v_" + to_string(countD + 1);
-        addFilesToVersionDir(files, dest);
+        versionFolder_add(files, dest);
         chdir(&cwd[0]);
     }
     return;
 }
 
-string getText()
+string mycustom_msg(string msg)
 {
     time_t rawtime;
     time(&rawtime);
-    string text = "commit \n version: v_" + to_string(countDirectories("./.git/version") + 1) + "\n" + "date: " + string(ctime(&rawtime)) + "\n\n";
+    string text = "Commit\n#version: v_" + to_string(cnt_dir("./.git/version") + 1) + "\n" + "message: " + msg + "\ntimestamp: " + string(ctime(&rawtime)) + "\n\n";
     return text;
 }
 
-void addToAddFiles(vector<string> &addFiles, unordered_map<string, string> statusFiles)
+void modify_addFiles(vector<string> &addFiles, unordered_map<string, string> statusFiles)
 {
     for (auto it : statusFiles)
     {
@@ -595,26 +559,26 @@ void addToAddFiles(vector<string> &addFiles, unordered_map<string, string> statu
     return;
 }
 
-void commit()
+void commit(string msg)
 {
-    if (!isDirExist("./.git"))
+    if (!dir_checker("./.git"))
     {
         cout << "Git Not Initialized" << endl;
         return;
     }
-    if (checkFileSize("./.git/add.txt") == 0)
+    if (getFileSize("./.git/add.txt") == 0)
     {
         cout << "Nothing to commit" << endl;
         return;
     }
 
-    string text = getText();
-    int countD = countDirectories("./.git/version");
+    string text = mycustom_msg(msg);
+    int countD = cnt_dir("./.git/version");
     vector<string> allFiles;
-    listFiles(".", allFiles);
-    updateLog(text);
-    unordered_map<string, string> statusFiles = readFileMap("./.git/status.txt");
-    vector<string> addFiles = readFile("./.git/add.txt");
+    myls(".", allFiles);
+    log_update(text);
+    unordered_map<string, string> statusFiles = filemap_reader("./.git/status.txt");
+    vector<string> addFiles = file_reader("./.git/add.txt");
     string destination = "./.git/version/v_" + to_string(countD + 1);
     int mk = mkdir(&destination[0], 0777);
     if (mk == -1)
@@ -634,7 +598,7 @@ void commit()
 
     commitUtil(cwd, pversion_files, statusFiles, countD); // new
 
-    addFilesToVersionDir(addFiles, destination);
+    versionFolder_add(addFiles, destination);
     vector<string> temp = addFiles;
 
     for (int i = 0; i < temp.size(); i++)
@@ -644,9 +608,9 @@ void commit()
             statusFiles.erase(temp[i]);
     }
 
-    addToAddFiles(addFiles, statusFiles);
-    updateStatus(addFiles);
-    deleteData("./.git/add.txt");
+    modify_addFiles(addFiles, statusFiles);
+    modify_status(addFiles);
+    del_data("./.git/add.txt");
     return;
 }
 
@@ -654,7 +618,7 @@ void printUntracked(vector<string> a)
 {
     for (size_t i = 0; i < a.size(); i++)
     {
-        cout << KRED "(UNTRACKED)\t" << a[i] << RESET << endl;
+        cout << REDTEXT "(UNTRACKED)\t" << a[i] << RESET << endl;
     }
 }
 
@@ -662,7 +626,7 @@ void printTbc(vector<string> a)
 {
     for (size_t i = 0; i < a.size(); i++)
     {
-        cout << KGRN "(STAGED)\t" << a[i] << RESET << endl;
+        cout << GREENTEXT "(STAGED)\t" << a[i] << RESET << endl;
     }
 }
 
@@ -670,7 +634,7 @@ void printModified(vector<string> a)
 {
     for (size_t i = 0; i < a.size(); i++)
     {
-        cout << KYEL "(MODIFIED)\t" << a[i] << RESET << endl;
+        cout << YELLOWTEXT "(MODIFIED)\t" << a[i] << RESET << endl;
     }
 }
 
@@ -683,10 +647,10 @@ void status()
     vector<string> modified;
     vector<string> all;
 
-    listFiles(".", all);
+    myls(".", all);
 
-    added_files = readFileSet("./.git/add.txt");
-    status_files = readFileMap("./.git/status.txt");
+    added_files = fileset_reader("./.git/add.txt");
+    status_files = filemap_reader("./.git/status.txt");
 
     for (auto fi : all)
     {
@@ -702,9 +666,9 @@ void status()
         {
             files_tbc.push_back(fi);
         }
-        else if (status_files.find(fi) != status_files.end())
+        if (status_files.find(fi) != status_files.end())
         {
-            if (status_files[fi] != hash)
+            if (status_files[fi] == hash)
             {
                 modified.push_back(fi);
             }
@@ -716,18 +680,18 @@ void status()
     printModified(modified);
 }
 
-bool compareVersions(dirent *a, dirent *b)
+bool mycustomcomparator(dirent *a, dirent *b)
 {
-	string s1 = string(a->d_name);
-	string s2 = string(b->d_name);
-	if (s1.compare(s2) < 0)
-	{
-		return true;
-	}
-	return false;
+    string s1 = string(a->d_name);
+    string s2 = string(b->d_name);
+    if (s1.compare(s2) < 0)
+    {
+        return true;
+    }
+    return false;
 }
 
-void getDirContents(string path, vector<string> &dir_contents)
+void explore_dir(string path, vector<string> &dir_contents)
 {
     dir_contents.clear();
     DIR *d = opendir(path.c_str());
@@ -742,7 +706,7 @@ void getDirContents(string path, vector<string> &dir_contents)
     sort(dir_contents.begin(), dir_contents.end());
 }
 
-int remove_dir(const char *loc)
+int myrmdir(const char *loc)
 {
     int retval = -1;
 
@@ -774,7 +738,7 @@ int remove_dir(const char *loc)
                 if (!stat(temp_buffer, &statbuf))
                 {
                     if (S_ISDIR(statbuf.st_mode))
-                        rettemp = remove_dir(temp_buffer);
+                        rettemp = myrmdir(temp_buffer);
                     else
                         rettemp = unlink(temp_buffer);
                 }
@@ -790,19 +754,15 @@ int remove_dir(const char *loc)
     return retval;
 }
 
-void deleteFolder(vector<string> arr)
+void rmfolder(vector<string> arr)
 {
     for (int i = 0; i < arr.size(); i++)
     {
-        if (arr[i] == "." || arr[i] == ".." || arr[i] == "git" || arr[i] == ".git" || arr[i] == "git.cpp" || arr[i] == "sha1.hpp" || arr[i] == "trackerlog.txt")
+        if (arr[i] == "." || arr[i] == ".." || arr[i] == "git" || arr[i] == ".git" || arr[i] == "git.cpp" || arr[i] == "sha1.hpp" || arr[i] == "trackerlog.txt" || arr[i] == "README.md")
             continue;
         string path = arr[i];
-        // Directory delete
-        if (isDirExist(path))
+        if (dir_checker(path))
         {
-            // Get all the contents present in the files
-            // vector<string> dirContents;
-            // getDirContents(path, dirContents);
             vector<string> dirinfo;
             DIR *c = opendir(&path[0]);
             struct dirent *arr;
@@ -814,17 +774,15 @@ void deleteFolder(vector<string> arr)
             closedir(c);
             sort(dirinfo.begin(), dirinfo.end());
 
-            // Making all the names of the retireved folders absolute path
             for (int j = 0; j < dirinfo.size(); j++)
             {
                 if (dirinfo[j] == "." || dirinfo[j] == "..")
                     continue;
                 dirinfo[j] = path + "/" + dirinfo[j];
             }
-            deleteFolder(dirinfo);
+            rmfolder(dirinfo);
             rmdir(&path[0]);
         }
-        // File Delete
         else
         {
             remove(&path[0]);
@@ -832,23 +790,21 @@ void deleteFolder(vector<string> arr)
     }
 }
 
-void copyFile_roll(string source, string destination, char *d_name)
+void cpfile2(string source, string destination, char *d_name)
 {
     if (current_directory.find(string(d_name)) != current_directory.end())
     {
-        delete_file(&(destination)[0]);
+        del_file(&(destination)[0]);
     }
     char buff[BUFSIZ];
     FILE *src1 = fopen(&source[0], "r");
     FILE *dest1 = fopen(&destination[0], "w");
     size_t size;
 
-    // Copying the contents
     while ((size = fread(buff, 1, BUFSIZ, src1)) > 0)
     {
         fwrite(buff, 1, size, dest1);
     }
-    // Copying the permissions
     struct stat st;
     stat(&source[0], &st);
     chmod(&destination[0], st.st_mode);
@@ -856,11 +812,11 @@ void copyFile_roll(string source, string destination, char *d_name)
     fclose(dest1);
 }
 
-void copyDirectory_roll(char *source, char *destination, char *d_name)
+void cpdir2(char *source, char *destination, char *d_name)
 {
     if (current_directory.find(string(d_name)) != current_directory.end())
     {
-        remove_dir(&(string(destination) + '/' + string(d_name))[0]);
+        myrmdir(&(string(destination) + '/' + string(d_name))[0]);
     }
 
     int status = mkdir(destination, S_IRUSR | S_IWUSR | S_IXUSR);
@@ -892,11 +848,11 @@ void copyDirectory_roll(char *source, char *destination, char *d_name)
                 {
                     if ((S_ISDIR(sb.st_mode)))
                     {
-                        copyDirectory_roll(newp, destp, dir->d_name);
+                        cpdir2(newp, destp, dir->d_name);
                     }
                     else
                     {
-                        copyFile_roll(newp, destp, dir->d_name);
+                        cpfile2(newp, destp, dir->d_name);
                     }
                 }
             }
@@ -909,7 +865,7 @@ void copyDirectory_roll(char *source, char *destination, char *d_name)
     }
 }
 
-void copy_version(char *source, char *des)
+void cp_ver(char *source, char *des)
 {
     DIR *d;
     struct dirent *dir;
@@ -940,11 +896,11 @@ void copy_version(char *source, char *des)
 
                     if ((S_ISDIR(sb.st_mode)))
                     {
-                        copyDirectory_roll(newp, destp, dir->d_name);
+                        cpdir2(newp, destp, dir->d_name);
                     }
                     else
                     {
-                        copyFile_roll(newp, destp, dir->d_name);
+                        cpfile2(newp, destp, dir->d_name);
                     }
                 }
             }
@@ -971,14 +927,12 @@ void rollback()
 
         while ((p = readdir(df)) != NULL)
         {
-            // if (strcmp(p->d_name, ".") != 0 && strcmp(p->d_name, "..") != 0)
             if (p->d_name != "." && p->d_name != "..")
             {
                 dirfiles.push_back(p);
             }
         }
-        // sort
-        sort(dirfiles.begin(), dirfiles.end(), compareVersions);
+        sort(dirfiles.begin(), dirfiles.end(), mycustomcomparator);
 
         string version_to_remove, final_source;
         version_to_remove = dirfiles[dirfiles.size() - 1]->d_name;
@@ -998,12 +952,8 @@ void rollback()
 
         final_source = ".git/version/" + version_to_remove;
 
-        // bool check = check_for_version_delete(final_source, path);
-
         string rollback_ver, rollback_path;
-        // if (check == true)
-        // {
-        remove_dir(&final_source[0]);
+        myrmdir(&final_source[0]);
 
         dirfiles.pop_back();
 
@@ -1017,8 +967,6 @@ void rollback()
         }
 
         rollback_path = ".git/version/" + rollback_ver;
-        // cout << path_prev_version << endl;
-        // Delete files
         char buff[PATH_MAX];
         getcwd(buff, PATH_MAX);
         string cwd = string(buff);
@@ -1034,16 +982,15 @@ void rollback()
         closedir(c);
         sort(dirinfo.begin(), dirinfo.end());
 
-        deleteFolder(dirinfo);
+        rmfolder(dirinfo);
 
-        copy_version(&rollback_path[0], path);
+        cp_ver(&rollback_path[0], path);
 
-        // Find the files in the previous version
         vector<string> prev_contents;
         chdir(&rollback_path[0]);
-        listFiles(".", prev_contents);
+        myls(".", prev_contents);
         string dest = "../../../";
-        addFilesToVersionDir(prev_contents, dest);
+        versionFolder_add(prev_contents, dest);
         chdir(&cwd[0]);
     }
     else
@@ -1055,7 +1002,7 @@ void rollback()
 void log()
 {
     cout << endl;
-    vector<string> t = readFile("./.git/log.txt");
+    vector<string> t = file_reader("./.git/log.txt");
     for (int i = 0; i < t.size(); i++)
     {
         cout << t[i] << endl;
@@ -1065,7 +1012,7 @@ void log()
 
 bool init_first()
 {
-    if (!isDirExist("./.git"))
+    if (!dir_checker("./.git"))
     {
         cout << "Git Not Initialized" << endl;
         return true;
@@ -1091,7 +1038,6 @@ void menu(vector<string> args)
         else if (args.size() != 2)
         {
             cout << "Invalid number of arguments\nTip: For adding all files use add .\n";
-            // return 0;
         }
         else
         {
@@ -1106,9 +1052,30 @@ void menu(vector<string> args)
             trackerlogs("git commit failed as init was not created\n");
             return;
         }
-        commit();
-        trackerlogs("Commit successful\n");
-        // cout<<"Commit Successful\n";
+        string msg = "";
+        bool tf = true;
+        if (args.size() > 1)
+        {
+            if (args[1] == "-m")
+            {
+                for (size_t i = 2; i < args.size(); i++)
+                {
+                    msg += args[i];
+                    msg += " ";
+                }
+            }
+            else
+            {
+                tf = false;
+                cout << "Invalid command\n";
+            }
+        }
+        if (tf)
+        {
+            commit(msg);
+            trackerlogs("Commit successful\n");
+            cout << "Commit Successful\n";
+        }
     }
     else if (cmd == "status")
     {
@@ -1127,8 +1094,7 @@ void menu(vector<string> args)
             trackerlogs("git rollback failed as init was not created\n");
             return;
         }
-        // check if there are no versions. In that case rollback is illegal
-        int countDir = countDirectories("./.git/version");
+        int countDir = cnt_dir("./.git/version");
         if (countDir == 0)
         {
             cout << "No version to rollback to\n";
@@ -1137,20 +1103,19 @@ void menu(vector<string> args)
         else if (args.size() == 1)
         {
             rollback();
-            // Writing to log
             time_t rawtime;
             time(&rawtime);
             string text = "Rollback\n";
-            text += "version: v_" + to_string(countDir) + " --> v_" + to_string(countDir-1) + "\n";
-            text += "date: " + string(ctime(&rawtime)) + "\n\n";
-            updateLog(text);
+            text += "Rollback\n#version: v_" + to_string(countDir) + " => v_" + to_string(countDir - 1) + "\n";
+            text += "timestamp: " + string(ctime(&rawtime)) + "\n\n";
+            log_update(text);
             cout << "Rollback to previous version completed successfully\n";
             trackerlogs("Rollback (without arguments) to previous version completed successfully\n");
         }
         else if (args.size() == 3)
         {
-            if (args[1] == "-c")
-            { // rollback by checkpoint (rollback '1', rollback '2', etc)
+            if (args[1] == "-c") // rollback by checkpoint (rollback '1', rollback '2', etc)
+            { 
                 int ver = stoi(args[2]);
                 if (countDir < ver || ver < 1)
                 {
@@ -1163,13 +1128,12 @@ void menu(vector<string> args)
                     {
                         rollback();
                     }
-                    // writing to log
                     time_t rawtime;
                     time(&rawtime);
                     string text = "Rollback\n";
-                    text += "version: v_" + to_string(countDir) + " --> v_" + to_string(countDir - ver) + "\n";
-                    text += "date: " + string(ctime(&rawtime)) + "\n\n";
-                    updateLog(text);
+                    text += "#version: v_" + to_string(countDir) + " => v_" + to_string(countDir - ver) + "\n";
+                    text += "timestamp: " + string(ctime(&rawtime)) + "\n\n";
+                    log_update(text);
                     cout << "Rollback to " << ver << " versions completed successfully\n";
                     trackerlogs("Rollback (with -c argument) to previous version completed successfully\n");
                 }
@@ -1189,13 +1153,12 @@ void menu(vector<string> args)
                     {
                         rollback();
                     }
-                    // writing to log
                     time_t rawtime;
                     time(&rawtime);
                     string text = "Rollback\n";
-                    text += "version: v_" + to_string(countDir) + " --> v_" + to_string(ver) + "\n";
-                    text += "date: " + string(ctime(&rawtime)) + "\n\n";
-                    updateLog(text);
+                    text += "#version: v_" + to_string(countDir) + " => v_" + to_string(ver) + "\n";
+                    text += "timestamp: " + string(ctime(&rawtime)) + "\n\n";
+                    log_update(text);
                     cout << "Rollback to version " << args[2] << " completed successfully\n";
                     trackerlogs("Rollback (with -vn argument) to previous version completed successfully\n");
                 }
